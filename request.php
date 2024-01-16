@@ -6,14 +6,17 @@ require_once 'connect.php';
 $connection = new Connection();  
 $conn = $connection->open();
 
-class LinkShortener {
+class LinkShortener 
+{
     private $conn;
 
-    public function __construct($conn) {
+    public function __construct($conn) 
+    {
         $this->conn = $conn;
     }
 
-    public function generateToken($min = 5, $max = 8) {
+    public function generateToken($min = 5, $max = 8) 
+    {
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDFEGHIJKLMNOPRSTUVWXYZ0123456789';
         $new_chars = str_split($chars);
 
@@ -27,13 +30,15 @@ class LinkShortener {
         return $token;
     }
 
-    public function shortenLink($link, $userId) {
+    public function shortenLink($link, $userId) 
+    {
         $stmt = $this->conn->prepare("SELECT * FROM `links` WHERE `link` = :link");
         $stmt->bindParam(':link', $link);
         $stmt->execute();
 
         if ($stmt->rowCount() > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            
             if ($row['user_id'] === null && !$userId) {
                 return $_SERVER['SERVER_NAME'] . '/' . $row['token'];
             } else {
@@ -41,7 +46,7 @@ class LinkShortener {
                 $stmt->bindParam(':link', $link);
                 $stmt->bindParam(':user_id', $userId);
                 $stmt->execute();
-
+                
                 if ($stmt->rowCount() > 0) {
                     $existingRow = $stmt->fetch(PDO::FETCH_ASSOC);
                     return $_SERVER['SERVER_NAME'] . '/' . $existingRow['token'];
@@ -49,8 +54,10 @@ class LinkShortener {
                     $token = $this->generateToken();
                 }
             }
+            
         } else {
             $token = '';
+            
             while (true) {
                 $token = $this->generateToken();
                 $stmt = $this->conn->prepare("SELECT * FROM `links` WHERE `token` = :token");
@@ -76,14 +83,14 @@ class LinkShortener {
         }
     }
 
-    public function redirectToOriginalLink($token) {
+    public function redirectToOriginalLink($token) 
+    {
         $stmt = $this->conn->prepare("SELECT * FROM `links` WHERE `token` = :token");
         $stmt->bindParam(':token', $token);
         $stmt->execute();
 
         if ($stmt->rowCount() > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
             $clickCount = $row['click_count'] + 1;
             $updateStmt = $this->conn->prepare("UPDATE `links` SET `click_count` = :click_count WHERE `token` = :token");
             $updateStmt->bindParam(':click_count', $clickCount);
@@ -106,7 +113,6 @@ if (isset($_GET['cut_link'])) {
     $request = trim($_GET['cut_link']);
     $request = htmlspecialchars($request);
     $shortenedLink = $linkShortener->shortenLink($request, $user_id);
-
     if ($shortenedLink) {
         $_GET['cut_link'] = $shortenedLink;
     } else {
